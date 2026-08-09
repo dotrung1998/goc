@@ -15,7 +15,7 @@ export default function Reserve() {
   const totalStr = isFree ? 'Miễn phí' : (priceNum * s.qty).toLocaleString('vi-VN') + '₫';
   const qtyTotalLabel = s.qty > 1 ? (T('Tổng ', 'Total ') + trStatus(totalStr)) : trStatus(ev.price);
 
-  const reserveBtnLabel = s.payMode === 'now' ? (T('Trả ngay ▪︎ ', 'Pay now ▪︎ ') + trStatus(totalStr)) : T('Giữ chỗ ▪︎ tối đa 1 giờ', 'Hold ▪︎ up to 1 hour');
+  const reserveBtnLabel = s.payMode === 'now' ? (T('Trả ngay ▪︎ ', 'Pay now ▪︎ ') + trStatus(totalStr)) : T('Giữ chỗ ▪︎ tối đa 24h', 'Hold ▪︎ up to 24h');
   const reserveBtnStyle = {
     margin: '18px 22px 0', fontSize: 15, fontWeight: 600, textAlign: 'center', padding: 16, borderRadius: 999,
     background: formOk ? ink : 'rgba(27,25,22,0.16)',
@@ -81,7 +81,7 @@ export default function Reserve() {
               <span style={dotStyle(s.payMode === 'hold')} />
             </div>
             <span style={{ fontSize: 12, lineHeight: 1.5, color: ink }}>
-              {T('Giữ chỗ tối đa 1 giờ. Link thanh toán gửi qua email, không trả là chỗ tự nhả.', 'Held for up to 1 hour. Payment link by email; unpaid holds release.')}
+              {T('Giữ chỗ tối đa 24h. Link thanh toán gửi qua email, không trả là chỗ tự nhả.', 'Held for up to 24h. Payment link by email; unpaid holds release.')}
             </span>
           </div>
         </div>

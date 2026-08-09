@@ -18,10 +18,10 @@ export default function Confirmed() {
   const confirmEyebrow = s.payMode === 'now' ? T('Xong rồi!', 'All set!') : T('Đang giữ chỗ cho bạn', 'Holding your spot');
   const confirmHeading = s.payMode === 'now'
     ? (name + T(', ' + (s.qty > 1 ? s.qty + ' chỗ của bạn đã sẵn sàng rồi.' : 'chỗ của bạn đã sẵn sàng rồi.'), ', your ' + (s.qty > 1 ? s.qty + ' seats are' : 'seat is') + ' ready to go.'))
-    : (name + T(', ' + (s.qty > 1 ? s.qty + ' chỗ của bạn được giữ trong 1 giờ tới.' : 'chỗ của bạn được giữ trong 1 giờ tới.'), ', your ' + (s.qty > 1 ? s.qty + ' seats are' : 'seat is') + ' held for the next hour.'));
+    : (name + T(', ' + (s.qty > 1 ? s.qty + ' chỗ của bạn được giữ trong 24h tới.' : 'chỗ của bạn được giữ trong 24h tới.'), ', your ' + (s.qty > 1 ? s.qty + ' seats are' : 'seat is') + ' held for the next 24h.'));
   const confirmNote = s.payMode === 'now'
     ? T('Biên nhận và địa chỉ chính xác đã gửi tới ' + (s.formEmail.trim() || 'email của bạn') + '.', 'Receipt and the exact address were sent to ' + (s.formEmail.trim() || 'your email') + '.')
-    : T('Link thanh toán ' + totalStr + ' đã gửi tới ' + (s.formEmail.trim() || 'email của bạn') + '. Không trả trong 1 giờ thì chỗ tự nhả.', 'A payment link for ' + trStatus(totalStr) + ' was sent to ' + (s.formEmail.trim() || 'your email') + '. Unpaid holds release after 1 hour.');
+    : T('Link thanh toán ' + totalStr + ' đã gửi tới ' + (s.formEmail.trim() || 'email của bạn') + '. Không trả trong 24h thì chỗ tự nhả.', 'A payment link for ' + trStatus(totalStr) + ' was sent to ' + (s.formEmail.trim() || 'your email') + '. Unpaid holds release after 24h.');
 
   const showQr = s.payMode === 'now';
   const giveLabel = s.gaveTicket ? T('Đã gửi vé ▪︎ link qua Zalo', 'Ticket sent ▪︎ link via Zalo') : T('Tặng vé cho bạn bè', 'Give a ticket to a friend');
