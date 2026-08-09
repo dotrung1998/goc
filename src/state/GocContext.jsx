@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { EVENTS as STATIC_EVENTS, findEvent as findStaticEvent } from '../data/events.js';
+import { EVENTS, findEvent } from '../data/events.js';
 import { supabase } from '../lib/supabase.js';
 
 const GocCtx = createContext(null);
@@ -358,4 +358,4 @@ export function useGoc() {
   return ctx;
 }
 
-export { STATIC_EVENTS as EVENTS };
+export { EVENTS, findEvent };
