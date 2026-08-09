@@ -358,4 +358,4 @@ export function useGoc() {
   return ctx;
 }
 
-export { EVENTS };
+export { STATIC_EVENTS as EVENTS };
