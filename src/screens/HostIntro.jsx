@@ -36,7 +36,7 @@ export default function HostIntro() {
           <span style={{ display: 'block', fontSize: 12.5, color: ink, marginTop: 5 }}>{hostIntroIg}</span>
           <p style={{ fontSize: 13, lineHeight: 1.5, color: ink, margin: '12px 0 0' }}>{hostIntroDesc}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 18, background: paper, borderRadius: 12, padding: 16 }}>
-            <img src="/goc-icon-t.png" alt="" crossOrigin="anonymous" style={{ width: 38, height: 'auto', display: 'block', flex: 'none', opacity: 0.75 }} />
+            <img src="/banbe-mark.png" alt="" crossOrigin="anonymous" style={{ width: 38, height: 'auto', display: 'block', flex: 'none', opacity: 0.75 }} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 13.5, fontWeight: 600, color: ink }}>{T('Chưa có sự kiện nào', 'No events yet')}</span>
               <span style={{ fontSize: 11.5, color: ink }}>{T('Sự kiện đầu tiên của bạn sẽ nằm ở đây.', 'Your first event will sit here.')}</span>

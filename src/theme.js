@@ -12,10 +12,11 @@ export const fieldSolid = '#EEE8DA';
 // prototype's stand-in face) but designed for full, clean Vietnamese
 // diacritic coverage, so tone marks sit right at any weight/size.
 export const FACE = "'Be Vietnam Pro', system-ui, sans-serif";
+export const DISPLAY_FACE = "'Jost', 'Be Vietnam Pro', system-ui, sans-serif";
 
 // Display/title text: 600, tight tracking.
 export const display = (size, extra) => ({
-  fontFamily: FACE, fontWeight: 600, letterSpacing: '-0.02em', fontSize: size, color: ink, ...extra,
+  fontFamily: DISPLAY_FACE, fontWeight: 600, letterSpacing: '-0.02em', fontSize: size, color: ink, ...extra,
 });
 
 // ---- Glass recipes (exact, from the handoff) ----

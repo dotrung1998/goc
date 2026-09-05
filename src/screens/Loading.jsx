@@ -14,7 +14,7 @@ export default function Loading({ label }) {
           <path d="M52 7 a45 45 0 0 1 45 45" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" />
           <path d="M52 97 a45 45 0 0 1 -45 -45" fill="none" stroke={ink} strokeWidth="2" strokeLinecap="round" />
         </svg>
-        <img src="/goc-icon-t.png" alt="" crossOrigin="anonymous" style={{ width: 54, height: 'auto', display: 'block', animation: 'gocTumble 2.2s cubic-bezier(.45,.05,.35,1) infinite' }} />
+        <img src="/banbe-mark.png" alt="" crossOrigin="anonymous" style={{ width: 54, height: 'auto', display: 'block', animation: 'gocTumble 2.2s cubic-bezier(.45,.05,.35,1) infinite' }} />
       </div>
       <span style={{ fontSize: 12.5, color: ink, marginTop: 20 }}>{label}</span>
     </div>

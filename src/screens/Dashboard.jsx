@@ -27,7 +27,7 @@ export default function Dashboard() {
       <div style={{ padding: '66px 22px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div onClick={goHome} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
           <span style={{ fontSize: 14, color: ink, lineHeight: 1 }}>‹</span>
-          <img src="/goc-icon-dark.png" alt="banbe" crossOrigin="anonymous" style={{ height: 34, width: 'auto' }} />
+          <img src="/banbe-mark.png" alt="banbe" crossOrigin="anonymous" style={{ height: 34, width: 'auto' }} />
         </div>
         <span onClick={switchToGoer} style={{ fontSize: 11.5, color: ink, cursor: 'pointer', border: '1px solid rgba(27,25,22,0.16)', padding: '7px 12px', borderRadius: 999 }}>{T('Xem như khách', 'View as goer')}</span>
       </div>
