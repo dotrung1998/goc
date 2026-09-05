@@ -43,6 +43,7 @@ const initialState = {
   payMode: 'now',
   qty: 1,
   lang: 'vi',
+  theme: 'light',
   area: 'all',
   createName: '',
   createCats: [],
@@ -84,12 +85,23 @@ export const AREAS = [
 ];
 
 export function GocProvider({ children }) {
-  const [state, setStateRaw] = useState(initialState);
+  const [state, setStateRaw] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('banbe.preferences') || '{}');
+      return { ...initialState, lang: saved.lang === 'en' ? 'en' : 'vi', theme: saved.theme === 'dark' ? 'dark' : 'light' };
+    } catch {
+      return initialState;
+    }
+  });
   const s = state;
 
   const set = useCallback((partial) => {
     setStateRaw(prev => ({ ...prev, ...(typeof partial === 'function' ? partial(prev) : partial) }));
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('banbe.preferences', JSON.stringify({ lang: state.lang, theme: state.theme }));
+  }, [state.lang, state.theme]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -136,6 +148,9 @@ export function GocProvider({ children }) {
 
   const EN = s.lang === 'en';
   const T = useCallback((vi, en) => (EN ? en : vi), [EN]);
+  const toggleTheme = useCallback(() => set(prev => ({ theme: prev.theme === 'dark' ? 'light' : 'dark' })), [set]);
+  const pickTheme = useCallback((theme) => set({ theme }), [set]);
+  const openPreferences = useCallback(() => set({ screen: 'preferences' }), [set]);
 
   const trStatus = useCallback((str) => {
     if (!EN) return str;
@@ -392,7 +407,7 @@ export function GocProvider({ children }) {
     goHome, goProfile, goInbox, goEvent, goOrganizer, goReserve, backToEvent, backToOrganizer,
     goChat, goLogin, goDashboard, goCreate, openAttendance, openHeld, goHostIntro, createBack,
     switchToHost, switchToGoer, becomeHost, logout, dismissSplash,
-    toggleLang, openArea, pickArea, allowLocation, denyLocation,
+    toggleLang, openArea, pickArea, allowLocation, denyLocation, toggleTheme, pickTheme, openPreferences,
     pickFilter, clearFilters, shareEvent,
     qtyMinus, qtyPlus, pickPayNow, pickHold, formNameType, formEmailType, submitReserve, payHoldNow,
     addToCalendar, giveTicket,
@@ -408,7 +423,7 @@ export function GocProvider({ children }) {
     goHome, goProfile, goInbox, goEvent, goOrganizer, goReserve, backToEvent, backToOrganizer,
     goChat, goLogin, goDashboard, goCreate, openAttendance, openHeld, goHostIntro, createBack,
     switchToHost, switchToGoer, becomeHost, logout, dismissSplash,
-    toggleLang, openArea, pickArea, allowLocation, denyLocation,
+    toggleLang, openArea, pickArea, allowLocation, denyLocation, toggleTheme, pickTheme, openPreferences,
     pickFilter, clearFilters, shareEvent,
     qtyMinus, qtyPlus, pickPayNow, pickHold, formNameType, formEmailType, submitReserve, payHoldNow,
     addToCalendar, giveTicket,

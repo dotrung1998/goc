@@ -19,6 +19,7 @@ import CreateEvent from './screens/CreateEvent.jsx';
 import Attendance from './screens/Attendance.jsx';
 import AreaSheet from './screens/sheets/AreaSheet.jsx';
 import LocationSheet from './screens/sheets/LocationSheet.jsx';
+import Preferences from './screens/Preferences.jsx';
 
 const SCREENS = {
   splash: Splash,
@@ -36,6 +37,7 @@ const SCREENS = {
   hostIntro: HostIntro,
   create: CreateEvent,
   attendance: Attendance,
+  preferences: Preferences,
 };
 
 function Shell() {
@@ -54,11 +56,11 @@ function Shell() {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', background: '#EFEBE0' }}>
+    <div data-bb-theme={state.theme} style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', background: '#EFEBE0' }}>
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        style={{ width: '100%', maxWidth: 480, height: '100%', position: 'relative', overflowY: 'auto', WebkitOverflowScrolling: 'touch', background: '#F7F4EC' }}
+        style={{ width: '100%', maxWidth: 480, height: '100%', position: 'relative', overflowY: 'auto', WebkitOverflowScrolling: 'touch', background: 'var(--bb-bg)' }}
       >
         <Screen key={state.screen} />
         {state.areaAsking && <AreaSheet />}

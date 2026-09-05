@@ -2,11 +2,11 @@
 // Ported from the Goc Manual.dc.html design handoff — see its README for the
 // full rationale. One paper, one ink; color only lives in on-photo state chips.
 
-export const paper = '#F7F4EC';
-export const ink = '#1B1916';
-export const inkDeep = '#0C0B09';
-export const rule = 'rgba(27,25,22,0.16)';
-export const fieldSolid = '#EEE8DA';
+export const paper = 'var(--bb-bg)';
+export const ink = 'var(--bb-fg)';
+export const inkDeep = 'var(--bb-ink-deep)';
+export const rule = 'var(--bb-rule)';
+export const fieldSolid = 'var(--bb-field)';
 
 // Be Vietnam Pro — same geometric, rounded-sans vibe as Poppins (the
 // prototype's stand-in face) but designed for full, clean Vietnamese
@@ -33,17 +33,17 @@ const clipBackdropFilter = {
 
 // Field glass — inputs, list containers, small tiles.
 export const fieldGlass = (extra) => ({
-  background: 'linear-gradient(168deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.16) 42%, rgba(255,255,255,0) 100%), rgba(224,214,194,0.58)',
+  background: 'linear-gradient(168deg, var(--bb-white) 0%, rgba(255,255,255,0.16) 42%, rgba(255,255,255,0) 100%), var(--bb-card)',
   backdropFilter: 'blur(12px) saturate(1.06)', WebkitBackdropFilter: 'blur(12px) saturate(1.06)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.62), 0 1px 3px rgba(27,25,22,0.05)',
+  boxShadow: 'inset 0 1px 0 var(--bb-white), 0 1px 3px var(--bb-shadow)',
   borderRadius: 12, ...clipBackdropFilter, ...extra,
 });
 
 // Card glass — section cards, stat cards, panels.
 export const cardGlass = (extra) => ({
-  background: 'linear-gradient(168deg, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.24) 45%, rgba(255,255,255,0.04) 100%), rgba(236,229,214,0.46)',
+  background: 'linear-gradient(168deg, var(--bb-white) 0%, rgba(255,255,255,0.24) 45%, rgba(255,255,255,0.04) 100%), var(--bb-card2)',
   backdropFilter: 'blur(14px) saturate(1.05)', WebkitBackdropFilter: 'blur(14px) saturate(1.05)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.70), 0 1px 4px rgba(27,25,22,0.05)',
+  boxShadow: 'inset 0 1px 0 var(--bb-white), 0 1px 4px var(--bb-shadow)',
   borderRadius: 12, ...clipBackdropFilter, ...extra,
 });
 
@@ -56,8 +56,8 @@ export const barGlass = (extra) => ({
 
 // Ink glass button — primary CTAs.
 export const inkButton = (extra) => ({
-  background: 'linear-gradient(165deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.07) 30%, rgba(255,255,255,0) 55%), rgba(12,11,9,0.62)',
-  color: '#FFFFFF', backdropFilter: 'blur(22px) saturate(1.7)', WebkitBackdropFilter: 'blur(22px) saturate(1.7)',
+  background: 'linear-gradient(165deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.07) 30%, rgba(255,255,255,0) 55%), var(--bb-button)',
+  color: 'var(--bb-button-text)', backdropFilter: 'blur(22px) saturate(1.7)', WebkitBackdropFilter: 'blur(22px) saturate(1.7)',
   border: '1px solid rgba(255,255,255,0.3)',
   boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -12px 22px rgba(255,255,255,0.08), 0 14px 34px rgba(27,25,22,0.35)',
   borderRadius: 18, textShadow: '0 1px 2px rgba(27,25,22,0.35)', fontSize: 15, fontWeight: 600,

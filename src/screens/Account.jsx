@@ -2,7 +2,7 @@ import { useGoc } from '../state/GocContext.jsx';
 import { paper, ink, rule, display, fieldGlass, cardGlass, inkButton } from '../theme.js';
 
 export default function Account() {
-  const { state, T, goHome, goInbox, toggleLang, switchToHost, becomeHost, goLogin, logout } = useGoc();
+  const { state, T, goHome, goInbox, openPreferences, switchToHost, becomeHost, goLogin, logout } = useGoc();
   const s = state;
 
   const profileName = s.user ? (s.user.name || (s.user.email ? s.user.email.split('@')[0] : T('Bạn', 'You'))) : T('Khách', 'Guest');
@@ -44,9 +44,9 @@ export default function Account() {
           <span style={{ fontSize: 14, color: ink }}>{T('Sự kiện đã lưu', 'Saved events')}</span>
           <span style={{ fontSize: 13, color: ink }}>{(s.favorites || []).length} ›</span>
         </div>
-        <div onClick={toggleLang} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 16px', cursor: 'pointer' }}>
-          <span style={{ fontSize: 14, color: ink }}>{T('Ngôn ngữ', 'Language')}</span>
-          <span style={{ fontSize: 13, color: ink }}>{T('English', 'Tiếng Việt')}</span>
+        <div onClick={openPreferences} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 16px', cursor: 'pointer' }}>
+          <span style={{ fontSize: 14, color: ink }}>{T('Ngôn ngữ & hiển thị', 'Language & appearance')}</span>
+          <span style={{ fontSize: 13, color: ink }}>{s.lang === 'en' ? 'English' : 'Tiếng Việt'} ▪︎ {s.theme === 'dark' ? T('Tối', 'Dark') : T('Sáng', 'Light')}</span>
         </div>
       </div>
 
