@@ -4,7 +4,7 @@ import { paper, ink, display, fieldGlass } from '../theme.js';
 export default function Login() {
   const {
     state, T, curEvent: ev, backToOrganizer,
-    loginEmailType, loginEmailSubmit, loginEmailKey, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
+    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
   } = useGoc();
   const s = state;
   const valid = emailValid(s.loginEmail);
@@ -35,7 +35,7 @@ export default function Login() {
         <p style={{ fontSize: 13.5, lineHeight: 1.55, color: ink, margin: '12px 0 0' }}>{T('Chỉ cần để tin nhắn của người tổ chức tìm được bạn. Không cần mật khẩu.', "Just so the organizer's messages can find you. No password needed.")}</p>
         <div onClick={loginZalo} style={zaloBtn}>{T('Tiếp tục với Zalo', 'Continue with Zalo')}</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <div onClick={loginPhone} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>{T('Số điện thoại', 'Phone number')}</div>
+          <div onClick={loginPhone} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>{T('Gửi OTP', 'Send OTP')}</div>
           <div onClick={loginFacebook} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>Facebook</div>
           <div onClick={loginInstagram} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>Instagram</div>
         </div>
@@ -45,7 +45,10 @@ export default function Login() {
           <span style={{ flex: 1, height: 1, background: 'rgba(27,25,22,0.16)' }} />
         </div>
         <input value={s.loginEmail} onChange={loginEmailType} onKeyDown={loginEmailKey} placeholder="ban@email.com" style={{ ...fieldGlass({ marginTop: 14, padding: 14, border: 'none' }), fontSize: 14, fontFamily: "'Be Vietnam Pro', sans-serif", color: ink, outline: 'none' }} />
+        <input value={s.loginPhoneNumber} onChange={loginPhoneType} placeholder="+84 901 234 567" inputMode="tel" style={{ ...fieldGlass({ marginTop: 10, padding: 14, border: 'none' }), fontSize: 14, fontFamily: "'Be Vietnam Pro', sans-serif", color: ink, outline: 'none' }} />
         <div onClick={loginEmailSubmit} style={loginBtnStyle}>{T('Gửi mã đăng nhập', 'Send login code')}</div>
+        {s.loginSent && <p style={{ fontSize: 12, lineHeight: 1.5, color: ink, margin: '12px 0 0', textAlign: 'center' }}>{T('Đã gửi link đăng nhập. Mở email trên thiết bị này để tiếp tục.', 'Login link sent. Open the email on this device to continue.')}</p>}
+        {s.reserveError && <p style={{ fontSize: 12, lineHeight: 1.5, color: '#9A3E2D', margin: '12px 0 0', textAlign: 'center' }}>{s.reserveError}</p>}
         <p style={{ fontSize: 11, lineHeight: 1.5, color: ink, margin: '16px 0 0', textAlign: 'center' }}>{T('Đã giữ chỗ sự kiện nào thì bạn đã đăng nhập sẵn.', "If you've already reserved a spot, you're already logged in.")}</p>
       </div>
     </div>

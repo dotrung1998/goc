@@ -27,7 +27,7 @@ export default function HostIntro() {
         <div style={{ ...fieldGlass({ marginTop: 22, padding: '18px 18px 20px' }) }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <span style={{ fontSize: 10.5, color: ink }}>{T('Khách sẽ thấy', 'Guests will see')}</span>
-            <span style={{ fontSize: 10.5, color: ink }}>gocsociety.com</span>
+            <span style={{ fontSize: 10.5, color: ink }}>banbe</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, marginTop: 12 }}>
             <span style={{ ...display(24, { lineHeight: 1.2 }) }}>{hostIntroName}</span>
@@ -52,7 +52,7 @@ export default function HostIntro() {
             </div>
           ))}
         </div>
-        <p style={{ fontSize: 11.5, lineHeight: 1.5, color: ink, margin: '16px 0 0' }}>{T('Góc duyệt sự kiện đầu tiên trong 48 giờ. Sau đó bạn đăng trực tiếp.', 'Góc reviews your first event within 48 hours. After that you post directly.')}</p>
+        <p style={{ fontSize: 11.5, lineHeight: 1.5, color: ink, margin: '16px 0 0' }}>{T('banbe duyệt sự kiện đầu tiên trong 48 giờ. Sau đó bạn đăng trực tiếp.', 'banbe reviews your first event within 48 hours. After that you post directly.')}</p>
       </div>
       <div onClick={goCreate} style={{ ...barGlass({ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '14px 20px 26px' }) }}>
         <div style={{ ...inkButton({ borderRadius: 999, padding: 16 }) }}>{T('Tạo sự kiện đầu tiên', 'Create your first event')}</div>

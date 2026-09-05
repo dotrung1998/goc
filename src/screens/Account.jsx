@@ -64,7 +64,7 @@ export default function Account() {
           <div style={{ ...cardGlass({ marginTop: 10, padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 10 }) }}>
             <span style={{ ...display(19, { lineHeight: 1.3 }) }}>{T('Tổ chức sự kiện đầu tiên', 'Host your first event')}</span>
             <p style={{ fontSize: 12.5, lineHeight: 1.5, color: ink, margin: 0 }}>
-              {T('Miễn phí hoàn toàn khi Góc còn mới — không phí đăng, không phí giao dịch. Tạo sự kiện đầu tiên để mở trang tổ chức.', 'Completely free while Góc is new — no listing or transaction fees. Create your first event to unlock your host page.')}
+              {T('Miễn phí hoàn toàn khi banbe còn mới — không phí đăng, không phí giao dịch. Tạo sự kiện đầu tiên để mở trang tổ chức.', 'Completely free while banbe is new — no listing or transaction fees. Create your first event to unlock your host page.')}
             </p>
             <div onClick={becomeHost} style={{ ...inkButton({ marginTop: 4, borderRadius: 18, padding: 14, fontSize: 14 }) }}>{T('Bắt đầu tổ chức ▪︎ miễn phí', 'Start hosting ▪︎ free')}</div>
           </div>

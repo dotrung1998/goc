@@ -179,10 +179,11 @@ export default function CreateEvent() {
               <div style={{ marginTop: 10, background: cur.accent, color: btnText, fontSize: 12, fontWeight: 600, textAlign: 'center', padding: 11, borderRadius: 999 }}>{T('Giữ chỗ', 'Reserve')}</div>
             </div>
           </div>
-          <p style={{ fontSize: 11, lineHeight: 1.55, color: ink, margin: '12px 0 0' }}>{T('Tên sự kiện, số chỗ và giá luôn dùng chữ của nền tảng.', 'Event name, capacity, and price always stay in platform typography.')}</p>
+          <p style={{ fontSize: 11, lineHeight: 1.55, color: ink, margin: '12px 0 0' }}>{T('Sự kiện mới sẽ ở trạng thái chờ duyệt. Một tài khoản admin riêng của banbe sẽ kiểm tra trước khi mở bán.', 'New events enter review. A separate banbe admin account approves them before they go live.')}</p>
         </div>
 
-        <div onClick={createSubmit} style={createBtnStyle}>{s.createSent ? T('Đã gửi ▪︎ Góc duyệt trong 48 giờ', 'Sent ▪︎ Góc reviews within 48h') : T('Gửi để duyệt', 'Submit for review')}</div>
+        <div onClick={createSubmit} style={createBtnStyle}>{s.createSent ? T('Đã gửi ▪︎ banbe duyệt trong 48 giờ', 'Sent ▪︎ banbe reviews within 48h') : T('Gửi để duyệt', 'Submit for review')}</div>
+        {s.createError && <p style={{ fontSize: 12, lineHeight: 1.5, color: '#9A3E2D', margin: '10px 0 0', textAlign: 'center' }}>{s.createError}</p>}
         <p style={{ fontSize: 11, lineHeight: 1.5, color: ink, margin: '12px auto 0', textAlign: 'center', maxWidth: '23ch' }}>{T('Hoàn toàn miễn phí: không phí đăng, không phí giao dịch, không phí ẩn.', 'Completely free: no listing fee, no transaction fee, no hidden fees.')}</p>
       </div>
     </div>

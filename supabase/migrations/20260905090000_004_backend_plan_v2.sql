@@ -8,6 +8,18 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS locale text NOT NULL DEFAULT 'vi' 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS attended_count int NOT NULL DEFAULT 0;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS no_show_count int NOT NULL DEFAULT 0;
 
+CREATE OR REPLACE FUNCTION sync_phone_verification() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.phone_confirmed_at IS NOT NULL THEN
+    UPDATE profiles SET phone = COALESCE(NEW.phone, phone), phone_verified = true WHERE id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS on_auth_phone_confirmed ON auth.users;
+CREATE TRIGGER on_auth_phone_confirmed AFTER UPDATE OF phone_confirmed_at ON auth.users
+FOR EACH ROW WHEN (NEW.phone_confirmed_at IS NOT NULL) EXECUTE FUNCTION sync_phone_verification();
+
 ALTER TABLE organizers ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES profiles(id) ON DELETE SET NULL;
 ALTER TABLE organizers ADD COLUMN IF NOT EXISTS instagram text DEFAULT '';
 ALTER TABLE organizers ADD COLUMN IF NOT EXISTS about text DEFAULT '';
@@ -21,6 +33,17 @@ ALTER TABLE organizers ADD COLUMN IF NOT EXISTS pay_qr_path text DEFAULT '';
 ALTER TABLE organizers ADD COLUMN IF NOT EXISTS pay_note text DEFAULT '';
 ALTER TABLE organizers ADD COLUMN IF NOT EXISTS refund_pledge text DEFAULT '';
 ALTER TABLE organizers ADD COLUMN IF NOT EXISTS disputes_open int NOT NULL DEFAULT 0;
+
+DROP POLICY IF EXISTS organizers_insert_owner ON organizers;
+CREATE POLICY organizers_insert_owner ON organizers FOR INSERT TO authenticated WITH CHECK (
+  auth.uid() = owner_id OR auth.uid() = user_id
+);
+DROP POLICY IF EXISTS organizers_update_owner ON organizers;
+CREATE POLICY organizers_update_owner ON organizers FOR UPDATE TO authenticated USING (
+  auth.uid() = owner_id OR auth.uid() = user_id
+) WITH CHECK (auth.uid() = owner_id OR auth.uid() = user_id);
+REVOKE SELECT ON organizers FROM anon, authenticated;
+GRANT SELECT (id, name, ig_handle, instagram, bio, about, verified, hosting_since, event_count, created_at) ON organizers TO anon, authenticated;
 
 ALTER TABLE events ADD COLUMN IF NOT EXISTS slug text;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS approval text NOT NULL DEFAULT 'host_approves' CHECK (approval IN ('instant', 'host_approves'));
@@ -230,3 +253,73 @@ END;
 $$;
 REVOKE EXECUTE ON FUNCTION check_in(text, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION check_in(text, boolean) TO authenticated;
+
+CREATE OR REPLACE FUNCTION create_event_draft(
+  p_name text, p_category text, p_description text, p_location text,
+  p_event_date date, p_event_time time, p_price_vnd bigint, p_capacity int,
+  p_organizer_name text, p_instagram text DEFAULT '', p_about text DEFAULT ''
+) RETURNS events LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_organizer organizers%ROWTYPE; v_event events%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'AUTH_REQUIRED'; END IF;
+  IF p_name IS NULL OR length(trim(p_name)) = 0 OR p_capacity IS NULL OR p_capacity < 1 THEN RAISE EXCEPTION 'INVALID_EVENT'; END IF;
+  UPDATE profiles SET role = CASE WHEN role = 'goer' THEN 'host' ELSE role END WHERE id = auth.uid();
+  SELECT * INTO v_organizer FROM organizers WHERE owner_id = auth.uid() OR user_id = auth.uid() ORDER BY created_at LIMIT 1;
+  IF NOT FOUND THEN
+    INSERT INTO organizers(owner_id, user_id, name, ig_handle, instagram, bio, about)
+    VALUES (auth.uid(), auth.uid(), COALESCE(NULLIF(trim(p_organizer_name), ''), 'Organizer'), p_instagram, p_instagram, p_about, p_about)
+    RETURNING * INTO v_organizer;
+  ELSE
+    UPDATE organizers SET name = COALESCE(NULLIF(trim(p_organizer_name), ''), name), instagram = COALESCE(p_instagram, instagram), about = COALESCE(p_about, about) WHERE id = v_organizer.id;
+  END IF;
+  INSERT INTO events(key, slug, organizer_id, name, cat_key, cat_label, description, price_text, price_cents, is_free, capacity, seats_remaining, location, area, event_date, event_time, status, approval, visibility)
+  VALUES (lower(regexp_replace(trim(p_name), '[^a-zA-Z0-9]+', '-', 'g')) || '-' || substr(md5(gen_random_uuid()::text), 1, 6),
+    lower(regexp_replace(trim(p_name), '[^a-zA-Z0-9]+', '-', 'g')) || '-' || substr(md5(gen_random_uuid()::text), 1, 6),
+    v_organizer.id, trim(p_name), p_category, p_category, COALESCE(p_description, ''),
+    CASE WHEN COALESCE(p_price_vnd, 0) = 0 THEN 'Miễn phí' ELSE to_char(p_price_vnd, 'FM999G999G999') || '₫' END,
+    COALESCE(p_price_vnd, 0) * 100, COALESCE(p_price_vnd, 0) = 0, p_capacity, p_capacity,
+    COALESCE(p_location, ''), COALESCE(p_location, ''), p_event_date, p_event_time, 'pending', 'host_approves', 'public')
+  RETURNING * INTO v_event;
+  RETURN v_event;
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION create_event_draft(text, text, text, text, date, time, bigint, int, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION create_event_draft(text, text, text, text, date, time, bigint, int, text, text, text) TO authenticated;
+
+CREATE OR REPLACE FUNCTION approve_event(p_event_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RETURN jsonb_build_object('success', false, 'error', 'NOT_AUTHORIZED');
+  END IF;
+  UPDATE events SET status = CASE WHEN seats_remaining = 0 THEN 'sold_out' ELSE 'open' END WHERE id = p_event_id AND status = 'pending';
+  IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'error', 'EVENT_NOT_PENDING'); END IF;
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION approve_event(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION approve_event(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION get_organizer_payout_details(p_organizer uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM organizers o WHERE o.id = p_organizer AND (o.owner_id = auth.uid() OR o.user_id = auth.uid())
+  ) AND NOT EXISTS (
+    SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM bookings b JOIN events e ON e.id = b.event_id
+    WHERE e.organizer_id = p_organizer AND b.user_id = auth.uid() AND b.status IN ('pending', 'confirmed', 'attended')
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'NOT_AUTHORIZED');
+  END IF;
+  RETURN (SELECT jsonb_build_object(
+    'pay_methods', pay_methods, 'bank_name', bank_name,
+    'bank_account_name', bank_account_name, 'bank_account_no', bank_account_no,
+    'momo_phone', momo_phone, 'pay_qr_path', pay_qr_path,
+    'pay_note', pay_note, 'refund_pledge', refund_pledge
+  ) FROM organizers WHERE id = p_organizer);
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION get_organizer_payout_details(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION get_organizer_payout_details(uuid) TO authenticated;

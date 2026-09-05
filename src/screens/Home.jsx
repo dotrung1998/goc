@@ -90,11 +90,11 @@ export default function Home() {
   return (
     <div style={{ animation: 'gocIn 0.32s cubic-bezier(.22,.61,.36,1) both', minHeight: '100%', background: paper }} data-screen-label="Home">
       <div style={{ padding: '70px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <img src="/goc-logo-t.png" alt="Góc" crossOrigin="anonymous" style={{ height: 96, width: 'auto', display: 'block', margin: '-20px 0 -14px' }} />
+        <img src="/goc-logo-t.png" alt="banbe" crossOrigin="anonymous" style={{ height: 96, width: 'auto', display: 'block', margin: '-20px 0 -14px' }} />
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
             <span onClick={toggleLang} style={{ fontSize: 11, color: ink, cursor: 'pointer', letterSpacing: '0.06em' }}>{T('English', 'Tiếng Việt')}</span>
-            <span onClick={openArea} style={{ fontSize: 11, color: ink, cursor: 'pointer' }}>gocsociety.com ▪︎ {curArea.key === 'all' ? 'Sài Gòn' : curArea.label} ▾</span>
+            <span onClick={openArea} style={{ fontSize: 11, color: ink, cursor: 'pointer' }}>banbe ▪︎ {curArea.key === 'all' ? 'Sài Gòn' : curArea.label} ▾</span>
           </div>
           <div style={{ display: 'flex', gap: 14, alignItems: 'baseline' }}>
             {!!s.user && <span onClick={goInbox} style={{ fontSize: 12, color: ink, cursor: 'pointer', borderBottom: `1px solid ${ink}`, paddingBottom: 2 }}>Tin nhắn</span>}
