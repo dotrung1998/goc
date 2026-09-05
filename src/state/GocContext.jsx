@@ -32,7 +32,14 @@ const initialState = {
   located: null,
   askingLocation: false,
   user: null,
+  accountType: 'participant',
+  authMode: 'login',
+  authReturnScreen: 'home',
+  authBackScreen: 'home',
   loginEmail: '',
+  loginPhoneNumber: '',
+  loginCode: '',
+  loginSent: false,
   payMode: 'now',
   qty: 1,
   lang: 'vi',
@@ -41,6 +48,7 @@ const initialState = {
   createCats: [],
   createPalette: 'concrete',
   createSent: false,
+  createError: '',
   createDesc: '',
   createLoc: '',
   createDate: '',
@@ -62,6 +70,8 @@ const initialState = {
   attendanceEventKey: null,
   checkins: {},
   calAdded: false,
+  booking: null,
+  reserveError: '',
 };
 
 export const AREAS = [
@@ -75,6 +85,7 @@ export const AREAS = [
 
 export function GocProvider({ children }) {
   const [state, setStateRaw] = useState(initialState);
+  const s = state;
 
   const set = useCallback((partial) => {
     setStateRaw(prev => ({ ...prev, ...(typeof partial === 'function' ? partial(prev) : partial) }));
@@ -86,6 +97,30 @@ export function GocProvider({ children }) {
     }, 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active && data.session?.user) set({ user: data.session.user });
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active && session?.user) set(prev => ({ user: session.user, mode: prev.accountType === 'organizer' ? 'host' : 'goer', screen: prev.screen === 'login' ? prev.authReturnScreen : prev.screen, loginSent: false }));
+      if (active && !session) set({ user: null });
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, [set]);
+
+  useEffect(() => {
+    if (!s.user?.id) return;
+    let active = true;
+    (async () => {
+      const { data: event } = await supabase.from('events').select('id').eq('slug', s.eventKey).maybeSingle();
+      if (!event) return;
+      const { data: booking } = await supabase.from('bookings').select('*').eq('event_id', event.id).eq('user_id', s.user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (active && booking) set({ booking, holdDeadline: booking.expires_at ? new Date(booking.expires_at).getTime() : null });
+    })();
+    return () => { active = false; };
+  }, [set, s.user?.id, s.eventKey]);
 
   const splashTimer = useRef(null);
   useEffect(() => {
@@ -99,7 +134,6 @@ export function GocProvider({ children }) {
     set(prev => (prev.screen === 'splash' ? { screen: 'home' } : {}));
   }, [set]);
 
-  const s = state;
   const EN = s.lang === 'en';
   const T = useCallback((vi, en) => (EN ? en : vi), [EN]);
 
@@ -141,26 +175,26 @@ export function GocProvider({ children }) {
   // ---- navigation ----
   const goHome = useCallback(() => set({ screen: 'home' }), [set]);
   const goProfile = useCallback(() => set({ screen: 'profile' }), [set]);
-  const goInbox = useCallback(() => set({ screen: 'inbox' }), [set]);
+  const goInbox = useCallback(() => set(s.user ? { screen: 'inbox' } : { screen: 'login', authMode: 'login', accountType: 'participant', authReturnScreen: 'inbox', authBackScreen: 'home' }), [set, s.user]);
   const goEvent = useCallback((key) => set({ screen: 'event', eventKey: key }), [set]);
   const goOrganizer = useCallback(() => set({ screen: 'organizer' }), [set]);
-  const goReserve = useCallback(() => set({ screen: 'reserve' }), [set]);
+  const goReserve = useCallback(() => set(s.user ? { screen: 'reserve' } : { screen: 'login', authMode: 'login', accountType: 'participant', authReturnScreen: 'reserve', authBackScreen: 'event' }), [set, s.user]);
   const backToEvent = useCallback(() => set({ screen: 'event' }), [set]);
   const backToOrganizer = useCallback(() => set({ screen: 'organizer' }), [set]);
   const goChat = useCallback(() => set({ screen: s.user ? 'chat' : 'login', chatBack: 'organizer' }), [set, s.user]);
-  const goLogin = useCallback(() => set({ screen: 'login' }), [set]);
+  const goLogin = useCallback(() => set({ screen: 'login', authMode: 'login', accountType: 'participant', authReturnScreen: 'profile', authBackScreen: 'home' }), [set]);
   const goDashboard = useCallback(() => set({ screen: 'dashboard' }), [set]);
-  const goCreate = useCallback(() => set({ screen: 'create' }), [set]);
+  const goCreate = useCallback(() => set(s.user ? { screen: 'create', mode: 'host' } : { screen: 'login', authMode: 'signup', accountType: 'organizer', authReturnScreen: 'create', authBackScreen: 'hostIntro' }), [set, s.user]);
   const openAttendance = useCallback((key) => set({ screen: 'attendance', attendanceEventKey: key }), [set]);
   const openHeld = useCallback(() => set({ screen: 'confirmed' }), [set]);
-  const goHostIntro = useCallback(() => set({ screen: 'hostIntro' }), [set]);
+  const goHostIntro = useCallback(() => set(s.user ? { screen: 'hostIntro' } : { screen: 'login', authMode: 'signup', accountType: 'organizer', authReturnScreen: 'hostIntro', authBackScreen: 'profile' }), [set, s.user]);
   const createBack = useCallback(() => set(prev => ({ screen: prev.hasHosted ? 'dashboard' : 'hostIntro' })), [set]);
 
   // ---- roles ----
-  const switchToHost = useCallback(() => set({ mode: 'host', screen: 'dashboard' }), [set]);
+  const switchToHost = useCallback(() => set(s.user ? { mode: 'host', screen: 'dashboard' } : { screen: 'login', accountType: 'organizer', authReturnScreen: 'dashboard', authBackScreen: 'home' }), [set, s.user]);
   const switchToGoer = useCallback(() => set({ mode: 'goer', screen: 'home' }), [set]);
   const becomeHost = useCallback(() => set({ screen: 'hostIntro' }), [set]);
-  const logout = useCallback(() => set({ user: null, mode: 'goer', screen: 'home' }), [set]);
+  const logout = useCallback(async () => { await supabase.auth.signOut(); set({ user: null, mode: 'goer', screen: 'home' }); }, [set]);
 
   // ---- lang / area / location ----
   const toggleLang = useCallback(() => set({ lang: EN ? 'vi' : 'en' }), [set, EN]);
@@ -178,13 +212,13 @@ export function GocProvider({ children }) {
 
   // ---- share ----
   const shareEvent = useCallback((ev) => {
-    const url = 'https://gocsociety.com/' + ev.key;
+    const url = 'https://banbe.app/' + ev.key;
     const done = () => {
       set({ shared: true });
       setTimeout(() => set({ shared: false }), 1800);
     };
     if (navigator.share) {
-      navigator.share({ title: 'Góc ▪︎ ' + ev.name, text: ev.name + ' ▪︎ ' + ev.where, url }).catch(done);
+      navigator.share({ title: 'banbe ▪︎ ' + ev.name, text: ev.name + ' ▪︎ ' + ev.where, url }).catch(done);
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(done, done);
     } else { done(); }
@@ -199,48 +233,38 @@ export function GocProvider({ children }) {
   const formEmailType = useCallback((e) => set({ formEmail: e.target.value }), [set]);
   const submitReserve = useCallback(async (formOk) => {
     if (!formOk) return;
-    set({ loading: true });
-
-    const payModeMapped = s.payMode === 'hold' ? 'hold_24h' : 'now';
-    const formName = s.formName.trim() || 'Goer';
-    const formEmail = s.formEmail.trim() || 'goer@gocsociety.com';
+    set({ loading: true, reserveError: '' });
 
     try {
-      // Call atomic stored procedure reserve_event_tickets on Supabase
-      const { data, error } = await supabase.rpc('reserve_event_tickets', {
-        p_event_id: s.eventKey,
-        p_user_name: formName,
-        p_user_email: formEmail,
-        p_user_phone: '',
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) throw new Error('AUTH_REQUIRED');
+      const { data: booking, error } = await supabase.rpc('claim_seats', {
+        p_event: s.eventKey,
         p_qty: s.qty,
-        p_pay_mode: payModeMapped,
+        p_note: null,
       });
-
-      if (error) {
-        console.warn('Supabase RPC reserve_event_tickets fallback:', error.message);
-      } else if (data?.success) {
-        console.log('Atomic reservation successful:', data);
-      }
-    } catch (err) {
-      console.warn('Supabase reservation error, proceeding with local optimistic state:', err);
-    } finally {
+      if (error) throw error;
+      const holdDeadline = booking.expires_at ? new Date(booking.expires_at).getTime() : null;
       set(prev => ({
         loading: false,
+        booking,
         screen: 'confirmed',
-        holdDeadline: prev.payMode === 'hold' ? Date.now() + 24 * 60 * 60 * 1000 : null,
+        holdDeadline,
         now: Date.now(),
         tickets: { ...prev.tickets, [prev.eventKey]: prev.qty },
         attending: prev.attending.includes(prev.eventKey) ? prev.attending : [...prev.attending, prev.eventKey],
-        user: { name: formName, email: formEmail, via: 'email' },
       }));
+    } catch (err) {
+      console.warn('Supabase booking failed:', err);
+      set({ loading: false, reserveError: err.message || 'Unable to reserve this event.' });
     }
-  }, [set, s.payMode, s.formName, s.formEmail, s.eventKey, s.qty]);
+  }, [set, s.eventKey, s.qty]);
 
   const payHoldNow = useCallback(() => set({ holdDeadline: null, payMode: 'now' }), [set]);
   const addToCalendar = useCallback(() => set({ calAdded: true }), [set]);
   const giveTicket = useCallback((ev) => {
-    const url = 'https://gocsociety.com/ve/' + ev.key + '-x7f2';
-    if (navigator.share) navigator.share({ title: 'Góc ▪︎ ' + ev.name, text: T('Mình có vé cho bạn', 'I have a ticket for you'), url }).catch(() => {});
+    const url = 'https://banbe.app/ve/' + ev.key + '-x7f2';
+    if (navigator.share) navigator.share({ title: 'banbe ▪︎ ' + ev.name, text: T('Mình có vé cho bạn', 'I have a ticket for you'), url }).catch(() => {});
     else if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
     set({ gaveTicket: true });
     setTimeout(() => set({ gaveTicket: false }), 2200);
@@ -248,23 +272,41 @@ export function GocProvider({ children }) {
 
   // ---- login ----
   const loginEmailType = useCallback((e) => set({ loginEmail: e.target.value }), [set]);
+  const loginPhoneType = useCallback((e) => set({ loginPhoneNumber: e.target.value }), [set]);
+  const loginCodeType = useCallback((e) => set({ loginCode: e.target.value }), [set]);
   const emailValid = (v) => /\S+@\S+\.\S+/.test(v);
   const loginEmailSubmit = useCallback(async () => {
+    if (s.accountType === 'admin' && s.authMode === 'signup') {
+      set({ reserveError: 'Admin accounts are provisioned by banbe. Please use a participant or organizer account.' });
+      return;
+    }
     if (emailValid(s.loginEmail)) {
       const email = s.loginEmail.trim();
       try {
-        await supabase.auth.signInWithOtp({ email });
+        const { error } = await supabase.auth.signInWithOtp({ email, options: { data: { account_type: s.accountType } } });
+        if (error) throw error;
+        set({ loginSent: true });
       } catch (e) {
-        console.log('Magic link login trigger:', e);
+        set({ reserveError: e.message || 'Unable to send the login code.' });
       }
-      set({ user: { email, via: 'email' }, screen: 'chat' });
     }
-  }, [set, s.loginEmail]);
+  }, [set, s.loginEmail, s.accountType]);
   const loginEmailKey = useCallback((e) => { if (e.key === 'Enter') loginEmailSubmit(); }, [loginEmailSubmit]);
-  const loginZalo = useCallback(() => set({ user: { name: 'Zalo', via: 'zalo' }, screen: 'chat' }), [set]);
-  const loginPhone = useCallback(() => set({ user: { name: 'Phone', via: 'phone' }, screen: 'chat' }), [set]);
-  const loginFacebook = useCallback(() => set({ user: { name: 'Facebook', via: 'facebook' }, screen: 'chat' }), [set]);
-  const loginInstagram = useCallback(() => set({ user: { name: 'Instagram', via: 'instagram' }, screen: 'chat' }), [set]);
+  const loginZalo = useCallback(() => set({ reserveError: 'Zalo login is not available yet. Use email or phone OTP.' }), [set]);
+  const loginPhone = useCallback(async () => {
+    if (s.accountType === 'admin' && s.authMode === 'signup') return set({ reserveError: 'Admin accounts are provisioned by banbe.' });
+    const phone = s.loginPhoneNumber.trim();
+    if (!phone) return set({ reserveError: 'Enter your phone number first.' });
+    const { error } = await supabase.auth.signInWithOtp({ phone, options: { data: { account_type: s.accountType } } });
+    set(error ? { reserveError: error.message } : { loginSent: true, reserveError: '' });
+  }, [set, s.loginPhoneNumber]);
+  const verifyLoginCode = useCallback(async () => {
+    if (!s.loginPhoneNumber.trim() || !s.loginCode.trim()) return set({ reserveError: 'Enter the OTP code.' });
+    const { error } = await supabase.auth.verifyOtp({ phone: s.loginPhoneNumber.trim(), token: s.loginCode.trim(), type: 'sms' });
+    if (error) set({ reserveError: error.message });
+  }, [set, s.loginPhoneNumber, s.loginCode]);
+  const loginFacebook = useCallback(() => set({ reserveError: 'Facebook login is not available yet. Use email OTP.' }), [set]);
+  const loginInstagram = useCallback(() => set({ reserveError: 'Instagram login is not available yet. Use email OTP.' }), [set]);
 
   // ---- chat ----
   const chatOnType = useCallback((e) => set({ chatDraft: e.target.value }), [set]);
@@ -299,7 +341,36 @@ export function GocProvider({ children }) {
   }), [set]);
   const pickCreatePalette = useCallback((key) => set({ createPalette: key }), [set]);
   const tapPhotoSlot = useCallback((index) => set(prev => ({ createPhotos: index < prev.createPhotos ? prev.createPhotos : Math.min(8, prev.createPhotos + 1) })), [set]);
-  const createSubmit = useCallback(() => { if (s.createName.trim()) set({ createSent: true, hasHosted: true, mode: 'host' }); }, [set, s.createName]);
+  const createSubmit = useCallback(async () => {
+    if (!s.createName.trim()) return;
+    set({ loading: true, createError: '' });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) throw new Error('AUTH_REQUIRED');
+      const priceVnd = parseInt((s.createPrice.match(/[\d.]+/) || ['0'])[0].replace(/\./g, ''), 10) || 0;
+      const capacity = parseInt(s.createSeats, 10) || 0;
+      const dateMatch = s.createDate.match(/(\d{1,2})\.(\d{1,2})/);
+      const timeMatch = s.createDate.match(/(\d{1,2}):(\d{2})/);
+      const { error } = await supabase.rpc('create_event_draft', {
+        p_name: s.createName.trim(),
+        p_category: s.createCats[0] || 'supper',
+        p_description: s.createDesc.trim(),
+        p_location: s.createLoc.trim(),
+        p_event_date: dateMatch ? `2026-${String(parseInt(dateMatch[2], 10)).padStart(2, '0')}-${String(parseInt(dateMatch[1], 10)).padStart(2, '0')}` : null,
+        p_event_time: timeMatch ? `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}` : null,
+        p_price_vnd: priceVnd,
+        p_capacity: capacity,
+        p_organizer_name: s.orgRegName.trim() || 'Organizer',
+        p_instagram: s.orgRegIg.trim(),
+        p_about: s.orgRegDesc.trim(),
+      });
+      if (error) throw error;
+      set({ loading: false, createSent: true, hasHosted: true, mode: 'host' });
+    } catch (err) {
+      console.warn('Event draft creation failed:', err);
+      set({ loading: false, createError: err.message || 'Unable to submit this event.' });
+    }
+  }, [set, s.createName, s.createCats, s.createDesc, s.createLoc, s.createDate, s.createPrice, s.createSeats, s.orgRegName, s.orgRegIg, s.orgRegDesc]);
   const requestVerify = useCallback(() => set({ orgVerifyRequested: true }), [set]);
 
   // ---- attendance ----
@@ -325,7 +396,7 @@ export function GocProvider({ children }) {
     pickFilter, clearFilters, shareEvent,
     qtyMinus, qtyPlus, pickPayNow, pickHold, formNameType, formEmailType, submitReserve, payHoldNow,
     addToCalendar, giveTicket,
-    loginEmailType, loginEmailSubmit, loginEmailKey, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
+    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginCodeType, verifyLoginCode, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
     chatOnType, chatSend, chatOnKey, chatBackFn, openChatFor,
     orgRegNameType, orgRegIgType, orgRegDescType,
     createNameType, createDescType, createLocType, createDateType, createPriceType, createSeatsType,
@@ -341,7 +412,7 @@ export function GocProvider({ children }) {
     pickFilter, clearFilters, shareEvent,
     qtyMinus, qtyPlus, pickPayNow, pickHold, formNameType, formEmailType, submitReserve, payHoldNow,
     addToCalendar, giveTicket,
-    loginEmailType, loginEmailSubmit, loginEmailKey, loginZalo, loginPhone, loginFacebook, loginInstagram,
+    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginCodeType, verifyLoginCode, loginZalo, loginPhone, loginFacebook, loginInstagram,
     chatOnType, chatSend, chatOnKey, chatBackFn, openChatFor,
     orgRegNameType, orgRegIgType, orgRegDescType,
     createNameType, createDescType, createLocType, createDateType, createPriceType, createSeatsType,

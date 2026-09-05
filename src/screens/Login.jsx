@@ -3,11 +3,12 @@ import { paper, ink, display, fieldGlass } from '../theme.js';
 
 export default function Login() {
   const {
-    state, T, curEvent: ev, backToOrganizer,
-    loginEmailType, loginEmailSubmit, loginEmailKey, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
+    state, T, set,
+    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginCodeType, verifyLoginCode, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
   } = useGoc();
   const s = state;
   const valid = emailValid(s.loginEmail);
+  const typeLabel = s.accountType === 'organizer' ? T('người tổ chức', 'organizer') : s.accountType === 'admin' ? T('quản trị viên', 'admin') : T('người tham gia', 'participant');
 
   const loginBtnStyle = {
     marginTop: 12, fontSize: 15, fontWeight: 600, textAlign: 'center', padding: 15, cursor: valid ? 'pointer' : 'default',
@@ -28,14 +29,22 @@ export default function Login() {
 
   return (
     <div style={{ animation: 'gocIn 0.32s cubic-bezier(.22,.61,.36,1) both', height: '100%', display: 'flex', flexDirection: 'column', background: paper }} data-screen-label="Login">
-      <div onClick={backToOrganizer} style={{ padding: '66px 22px 0', fontSize: 12, color: ink, cursor: 'pointer' }}>‹ {ev.orgName}</div>
+      <div onClick={() => set({ screen: s.authBackScreen })} style={{ padding: '66px 22px 0', fontSize: 12, color: ink, cursor: 'pointer' }}>‹ {T('Quay lại', 'Back')}</div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 26px' }}>
-        <span style={{ fontSize: 11.5, color: ink }}>{T('Đăng nhập', 'Log in')}</span>
-        <h2 style={{ ...display(25, { lineHeight: 1.3, margin: '10px 0 0' }) }}>{T('Đăng nhập để nhắn cho ', 'Log in to message ') + ev.hostShort}</h2>
-        <p style={{ fontSize: 13.5, lineHeight: 1.55, color: ink, margin: '12px 0 0' }}>{T('Chỉ cần để tin nhắn của người tổ chức tìm được bạn. Không cần mật khẩu.', "Just so the organizer's messages can find you. No password needed.")}</p>
+        <div style={{ display: 'flex', gap: 16, borderBottom: '1px solid rgba(27,25,22,0.16)', paddingBottom: 8 }}>
+          {['login', 'signup'].map(mode => <span key={mode} onClick={() => set({ authMode: mode })} style={{ fontSize: 11.5, color: ink, fontWeight: s.authMode === mode ? 600 : 400, borderBottom: s.authMode === mode ? `2px solid ${ink}` : '2px solid transparent', paddingBottom: 6, cursor: 'pointer' }}>{mode === 'login' ? T('Đăng nhập', 'Log in') : T('Đăng ký', 'Sign up')}</span>)}
+        </div>
+        <h2 style={{ ...display(25, { lineHeight: 1.3, margin: '10px 0 0' }) }}>{s.authMode === 'signup' ? T('Tạo tài khoản ' + typeLabel, 'Create a ' + typeLabel + ' account') : T('Tiếp tục với tư cách ' + typeLabel, 'Continue as a ' + typeLabel)}</h2>
+        <p style={{ fontSize: 13.5, lineHeight: 1.55, color: ink, margin: '12px 0 0' }}>{T('Chọn loại tài khoản trước khi đăng nhập hoặc đăng ký.', 'Choose an account type before logging in or signing up.')}</p>
+        <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+          {[['participant', T('Người tham gia', 'Participant')], ['organizer', T('Người tổ chức', 'Organizer')], ['admin', T('Quản trị viên', 'Admin')]].map(([key, label]) => (
+            <div key={key} onClick={() => set({ accountType: key })} style={{ ...typeChip, border: s.accountType === key ? `1.5px solid ${ink}` : '1px solid rgba(27,25,22,0.16)', fontWeight: s.accountType === key ? 600 : 400 }}>{label}</div>
+          ))}
+        </div>
+        {s.accountType === 'admin' && <p style={{ fontSize: 12, lineHeight: 1.5, color: ink, margin: '12px 0 0' }}>{T('Tài khoản quản trị viên do banbe cấp, không thể tự đăng ký.', 'Admin accounts are provisioned by banbe and cannot self-register.')}</p>}
         <div onClick={loginZalo} style={zaloBtn}>{T('Tiếp tục với Zalo', 'Continue with Zalo')}</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <div onClick={loginPhone} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>{T('Số điện thoại', 'Phone number')}</div>
+          <div onClick={loginPhone} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>{T('Gửi OTP', 'Send OTP')}</div>
           <div onClick={loginFacebook} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>Facebook</div>
           <div onClick={loginInstagram} style={{ ...fieldGlass({ padding: '13px 4px', border: 'none' }), ...socialBtn }}>Instagram</div>
         </div>
@@ -45,7 +54,11 @@ export default function Login() {
           <span style={{ flex: 1, height: 1, background: 'rgba(27,25,22,0.16)' }} />
         </div>
         <input value={s.loginEmail} onChange={loginEmailType} onKeyDown={loginEmailKey} placeholder="ban@email.com" style={{ ...fieldGlass({ marginTop: 14, padding: 14, border: 'none' }), fontSize: 14, fontFamily: "'Be Vietnam Pro', sans-serif", color: ink, outline: 'none' }} />
-        <div onClick={loginEmailSubmit} style={loginBtnStyle}>{T('Gửi mã đăng nhập', 'Send login code')}</div>
+        <input value={s.loginPhoneNumber} onChange={loginPhoneType} placeholder="+84 901 234 567" inputMode="tel" style={{ ...fieldGlass({ marginTop: 10, padding: 14, border: 'none' }), fontSize: 14, fontFamily: "'Be Vietnam Pro', sans-serif", color: ink, outline: 'none' }} />
+        {s.loginSent && s.loginPhoneNumber && <div style={{ display: 'flex', gap: 8, marginTop: 10 }}><input value={s.loginCode} onChange={loginCodeType} placeholder={T('Mã OTP', 'OTP code')} inputMode="numeric" style={{ ...fieldGlass({ flex: 1, padding: 14, border: 'none' }), fontSize: 14, fontFamily: "'Be Vietnam Pro', sans-serif", color: ink, outline: 'none' }} /><div onClick={verifyLoginCode} style={{ ...fieldGlass({ padding: '14px 12px', border: 'none' }), fontSize: 12, fontWeight: 600, color: ink, cursor: 'pointer' }}>{T('Xác nhận', 'Verify')}</div></div>}
+        <div onClick={loginEmailSubmit} style={loginBtnStyle}>{s.authMode === 'signup' ? T('Gửi link đăng ký', 'Send sign-up link') : T('Gửi mã đăng nhập', 'Send login code')}</div>
+        {s.loginSent && <p style={{ fontSize: 12, lineHeight: 1.5, color: ink, margin: '12px 0 0', textAlign: 'center' }}>{T('Đã gửi link đăng nhập. Mở email trên thiết bị này để tiếp tục.', 'Login link sent. Open the email on this device to continue.')}</p>}
+        {s.reserveError && <p style={{ fontSize: 12, lineHeight: 1.5, color: '#9A3E2D', margin: '12px 0 0', textAlign: 'center' }}>{s.reserveError}</p>}
         <p style={{ fontSize: 11, lineHeight: 1.5, color: ink, margin: '16px 0 0', textAlign: 'center' }}>{T('Đã giữ chỗ sự kiện nào thì bạn đã đăng nhập sẵn.', "If you've already reserved a spot, you're already logged in.")}</p>
       </div>
     </div>
@@ -53,3 +66,4 @@ export default function Login() {
 }
 
 const socialBtn = { flex: 1, color: ink, fontSize: 13, fontWeight: 500, textAlign: 'center', cursor: 'pointer' };
+const typeChip = { flex: 1, padding: '10px 4px', textAlign: 'center', fontSize: 11.5, color: ink, cursor: 'pointer' };
