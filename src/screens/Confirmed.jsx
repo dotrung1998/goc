@@ -43,6 +43,8 @@ export default function Confirmed() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
             <span style={{ ...display(17) }}>{ev.name}</span>
             <span style={{ fontSize: 12, color: ink }}>{ev.where}</span>
+            {s.booking?.code && <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', color: ink }}>{T('Mã vào cửa: ', 'Entry code: ')}{s.booking.code}</span>}
+            {s.booking?.status && <span style={{ fontSize: 11.5, color: ink }}>{T('Trạng thái: ', 'Status: ')}{s.booking.status}</span>}
             {showQr && <span style={{ fontSize: 10.5, color: ink }}>{T('Đưa mã này ở cửa', 'Show this code at the door')}</span>}
           </div>
           {showQr && <QrCode eventKey={s.booking.code || ev.key} />}

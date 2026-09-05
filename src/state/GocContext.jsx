@@ -32,8 +32,13 @@ const initialState = {
   located: null,
   askingLocation: false,
   user: null,
+  accountType: 'participant',
+  authMode: 'login',
+  authReturnScreen: 'home',
+  authBackScreen: 'home',
   loginEmail: '',
   loginPhoneNumber: '',
+  loginCode: '',
   loginSent: false,
   payMode: 'now',
   qty: 1,
@@ -99,7 +104,7 @@ export function GocProvider({ children }) {
       if (active && data.session?.user) set({ user: data.session.user });
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active && session?.user) set(prev => ({ user: session.user, screen: prev.screen === 'login' ? 'chat' : prev.screen, loginSent: false }));
+      if (active && session?.user) set(prev => ({ user: session.user, mode: prev.accountType === 'organizer' ? 'host' : 'goer', screen: prev.screen === 'login' ? prev.authReturnScreen : prev.screen, loginSent: false }));
       if (active && !session) set({ user: null });
     });
     return () => { active = false; listener.subscription.unsubscribe(); };
@@ -170,23 +175,23 @@ export function GocProvider({ children }) {
   // ---- navigation ----
   const goHome = useCallback(() => set({ screen: 'home' }), [set]);
   const goProfile = useCallback(() => set({ screen: 'profile' }), [set]);
-  const goInbox = useCallback(() => set({ screen: 'inbox' }), [set]);
+  const goInbox = useCallback(() => set(s.user ? { screen: 'inbox' } : { screen: 'login', authMode: 'login', accountType: 'participant', authReturnScreen: 'inbox', authBackScreen: 'home' }), [set, s.user]);
   const goEvent = useCallback((key) => set({ screen: 'event', eventKey: key }), [set]);
   const goOrganizer = useCallback(() => set({ screen: 'organizer' }), [set]);
-  const goReserve = useCallback(() => set({ screen: 'reserve' }), [set]);
+  const goReserve = useCallback(() => set(s.user ? { screen: 'reserve' } : { screen: 'login', authMode: 'login', accountType: 'participant', authReturnScreen: 'reserve', authBackScreen: 'event' }), [set, s.user]);
   const backToEvent = useCallback(() => set({ screen: 'event' }), [set]);
   const backToOrganizer = useCallback(() => set({ screen: 'organizer' }), [set]);
   const goChat = useCallback(() => set({ screen: s.user ? 'chat' : 'login', chatBack: 'organizer' }), [set, s.user]);
-  const goLogin = useCallback(() => set({ screen: 'login' }), [set]);
+  const goLogin = useCallback(() => set({ screen: 'login', authMode: 'login', accountType: 'participant', authReturnScreen: 'profile', authBackScreen: 'home' }), [set]);
   const goDashboard = useCallback(() => set({ screen: 'dashboard' }), [set]);
-  const goCreate = useCallback(() => set({ screen: 'create' }), [set]);
+  const goCreate = useCallback(() => set(s.user ? { screen: 'create', mode: 'host' } : { screen: 'login', authMode: 'signup', accountType: 'organizer', authReturnScreen: 'create', authBackScreen: 'hostIntro' }), [set, s.user]);
   const openAttendance = useCallback((key) => set({ screen: 'attendance', attendanceEventKey: key }), [set]);
   const openHeld = useCallback(() => set({ screen: 'confirmed' }), [set]);
-  const goHostIntro = useCallback(() => set({ screen: 'hostIntro' }), [set]);
+  const goHostIntro = useCallback(() => set(s.user ? { screen: 'hostIntro' } : { screen: 'login', authMode: 'signup', accountType: 'organizer', authReturnScreen: 'hostIntro', authBackScreen: 'profile' }), [set, s.user]);
   const createBack = useCallback(() => set(prev => ({ screen: prev.hasHosted ? 'dashboard' : 'hostIntro' })), [set]);
 
   // ---- roles ----
-  const switchToHost = useCallback(() => set({ mode: 'host', screen: 'dashboard' }), [set]);
+  const switchToHost = useCallback(() => set(s.user ? { mode: 'host', screen: 'dashboard' } : { screen: 'login', accountType: 'organizer', authReturnScreen: 'dashboard', authBackScreen: 'home' }), [set, s.user]);
   const switchToGoer = useCallback(() => set({ mode: 'goer', screen: 'home' }), [set]);
   const becomeHost = useCallback(() => set({ screen: 'hostIntro' }), [set]);
   const logout = useCallback(async () => { await supabase.auth.signOut(); set({ user: null, mode: 'goer', screen: 'home' }); }, [set]);
@@ -233,10 +238,8 @@ export function GocProvider({ children }) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session?.user) throw new Error('AUTH_REQUIRED');
-      const { data: event, error: eventError } = await supabase.from('events').select('id').eq('slug', s.eventKey).single();
-      if (eventError) throw eventError;
       const { data: booking, error } = await supabase.rpc('claim_seats', {
-        p_event: event.id,
+        p_event: s.eventKey,
         p_qty: s.qty,
         p_note: null,
       });
@@ -270,27 +273,38 @@ export function GocProvider({ children }) {
   // ---- login ----
   const loginEmailType = useCallback((e) => set({ loginEmail: e.target.value }), [set]);
   const loginPhoneType = useCallback((e) => set({ loginPhoneNumber: e.target.value }), [set]);
+  const loginCodeType = useCallback((e) => set({ loginCode: e.target.value }), [set]);
   const emailValid = (v) => /\S+@\S+\.\S+/.test(v);
   const loginEmailSubmit = useCallback(async () => {
+    if (s.accountType === 'admin' && s.authMode === 'signup') {
+      set({ reserveError: 'Admin accounts are provisioned by banbe. Please use a participant or organizer account.' });
+      return;
+    }
     if (emailValid(s.loginEmail)) {
       const email = s.loginEmail.trim();
       try {
-        const { error } = await supabase.auth.signInWithOtp({ email });
+        const { error } = await supabase.auth.signInWithOtp({ email, options: { data: { account_type: s.accountType } } });
         if (error) throw error;
         set({ loginSent: true });
       } catch (e) {
         set({ reserveError: e.message || 'Unable to send the login code.' });
       }
     }
-  }, [set, s.loginEmail]);
+  }, [set, s.loginEmail, s.accountType]);
   const loginEmailKey = useCallback((e) => { if (e.key === 'Enter') loginEmailSubmit(); }, [loginEmailSubmit]);
   const loginZalo = useCallback(() => set({ reserveError: 'Zalo login is not available yet. Use email or phone OTP.' }), [set]);
   const loginPhone = useCallback(async () => {
+    if (s.accountType === 'admin' && s.authMode === 'signup') return set({ reserveError: 'Admin accounts are provisioned by banbe.' });
     const phone = s.loginPhoneNumber.trim();
     if (!phone) return set({ reserveError: 'Enter your phone number first.' });
-    const { error } = await supabase.auth.signInWithOtp({ phone });
+    const { error } = await supabase.auth.signInWithOtp({ phone, options: { data: { account_type: s.accountType } } });
     set(error ? { reserveError: error.message } : { loginSent: true, reserveError: '' });
   }, [set, s.loginPhoneNumber]);
+  const verifyLoginCode = useCallback(async () => {
+    if (!s.loginPhoneNumber.trim() || !s.loginCode.trim()) return set({ reserveError: 'Enter the OTP code.' });
+    const { error } = await supabase.auth.verifyOtp({ phone: s.loginPhoneNumber.trim(), token: s.loginCode.trim(), type: 'sms' });
+    if (error) set({ reserveError: error.message });
+  }, [set, s.loginPhoneNumber, s.loginCode]);
   const loginFacebook = useCallback(() => set({ reserveError: 'Facebook login is not available yet. Use email OTP.' }), [set]);
   const loginInstagram = useCallback(() => set({ reserveError: 'Instagram login is not available yet. Use email OTP.' }), [set]);
 
@@ -382,7 +396,7 @@ export function GocProvider({ children }) {
     pickFilter, clearFilters, shareEvent,
     qtyMinus, qtyPlus, pickPayNow, pickHold, formNameType, formEmailType, submitReserve, payHoldNow,
     addToCalendar, giveTicket,
-    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
+    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginCodeType, verifyLoginCode, loginZalo, loginPhone, loginFacebook, loginInstagram, emailValid,
     chatOnType, chatSend, chatOnKey, chatBackFn, openChatFor,
     orgRegNameType, orgRegIgType, orgRegDescType,
     createNameType, createDescType, createLocType, createDateType, createPriceType, createSeatsType,
@@ -398,7 +412,7 @@ export function GocProvider({ children }) {
     pickFilter, clearFilters, shareEvent,
     qtyMinus, qtyPlus, pickPayNow, pickHold, formNameType, formEmailType, submitReserve, payHoldNow,
     addToCalendar, giveTicket,
-    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginZalo, loginPhone, loginFacebook, loginInstagram,
+    loginEmailType, loginEmailSubmit, loginEmailKey, loginPhoneType, loginCodeType, verifyLoginCode, loginZalo, loginPhone, loginFacebook, loginInstagram,
     chatOnType, chatSend, chatOnKey, chatBackFn, openChatFor,
     orgRegNameType, orgRegIgType, orgRegDescType,
     createNameType, createDescType, createLocType, createDateType, createPriceType, createSeatsType,
