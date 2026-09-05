@@ -1,11 +1,11 @@
 import { useGoc } from '../state/GocContext.jsx';
 import { bg } from '../data/events.js';
-import { paper, ink, FACE, display, fieldGlass, cardGlass } from '../theme.js';
+import { paper, ink, FACE, display, fieldGlass } from '../theme.js';
 
 export default function Reserve() {
   const {
     state, T, trStatus, curEvent: ev, backToEvent,
-    qtyMinus, qtyPlus, pickPayNow, pickHold, formNameType, formEmailType, submitReserve, emailValid,
+    qtyMinus, qtyPlus, formNameType, formEmailType, submitReserve, emailValid,
   } = useGoc();
   const s = state;
 
@@ -15,16 +15,13 @@ export default function Reserve() {
   const totalStr = isFree ? 'Miễn phí' : (priceNum * s.qty).toLocaleString('vi-VN') + '₫';
   const qtyTotalLabel = s.qty > 1 ? (T('Tổng ', 'Total ') + trStatus(totalStr)) : trStatus(ev.price);
 
-  const reserveBtnLabel = s.payMode === 'now' ? (T('Trả ngay ▪︎ ', 'Pay now ▪︎ ') + trStatus(totalStr)) : T('Giữ chỗ ▪︎ tối đa 24 giờ', 'Hold ▪︎ up to 24 hours');
+  const reserveBtnLabel = T('Giữ chỗ ▪︎ 30 phút', 'Hold ▪︎ 30 minutes');
   const reserveBtnStyle = {
     margin: '18px 22px 0', fontSize: 15, fontWeight: 600, textAlign: 'center', padding: 16, borderRadius: 999,
     background: formOk ? ink : 'rgba(27,25,22,0.16)',
     color: formOk ? paper : ink,
     cursor: formOk ? 'pointer' : 'default', transition: 'background .15s',
   };
-
-  const dotStyle = (on) => ({ width: 15, height: 15, borderRadius: '50%', border: on ? `4px solid ${ink}` : `1.5px solid ${ink}` });
-  const cardStyle = (on) => ({ ...cardGlass({ padding: '13px 15px', display: 'flex', flexDirection: 'column', gap: 5, cursor: 'pointer' }), border: on ? `1.5px solid ${ink}` : '1px solid rgba(27,25,22,0.16)' });
 
   return (
     <div style={{ animation: 'gocIn 0.32s cubic-bezier(.22,.61,.36,1) both', minHeight: '100%', background: paper }} data-screen-label="Reserve">
@@ -63,51 +60,14 @@ export default function Reserve() {
           </div>
         </div>
       </div>
-      <div style={{ margin: '22px 22px 0' }}>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: ink }}>{T('Cách giữ chỗ', 'How to reserve')}</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-          <div onClick={pickPayNow} style={cardStyle(s.payMode === 'now')}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: ink }}>{T('Trả ngay', 'Pay now')}</span>
-              <span style={dotStyle(s.payMode === 'now')} />
-            </div>
-            <span style={{ fontSize: 12, lineHeight: 1.5, color: ink }}>
-              {T('Chỗ xác nhận ngay. Trả ' + trStatus(ev.price) + ' qua MoMo, VNPay, ZaloPay, HaloPay, Apple Pay hoặc thẻ.', 'Seat confirmed instantly. Pay ' + trStatus(ev.price) + ' via MoMo, VNPay, ZaloPay, HaloPay, Apple Pay or card.')}
-            </span>
-          </div>
-          <div onClick={pickHold} style={cardStyle(s.payMode === 'hold')}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: ink }}>{T('Giữ tạm', 'Hold')}</span>
-              <span style={dotStyle(s.payMode === 'hold')} />
-            </div>
-            <span style={{ fontSize: 12, lineHeight: 1.5, color: ink }}>
-              {T('Giữ chỗ tối đa 24 giờ. Link thanh toán gửi qua email, không trả là chỗ tự nhả.', 'Held for up to 24 hours. Payment link by email; unpaid holds release.')}
-            </span>
-          </div>
-        </div>
+      <div style={{ margin: '22px 22px 0', fontSize: 12, lineHeight: 1.55, color: ink }}>
+        {T('banbe không thu tiền. Bạn giữ chỗ 30 phút, sau đó chuyển khoản trực tiếp cho người tổ chức theo hướng dẫn trong tin nhắn. Nếu họ hủy, họ có trách nhiệm hoàn tiền cho bạn.', 'banbe does not collect money. Your spot is held for 30 minutes, then you pay the organizer directly using the instructions in chat. If they cancel, they are responsible for your refund.')}
       </div>
       <div onClick={() => submitReserve(formOk)} style={reserveBtnStyle}>{reserveBtnLabel}</div>
-      {s.payMode === 'now' && (
-        <div style={{ margin: '18px 22px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ flex: 1, height: 1, background: 'rgba(27,25,22,0.16)' }} />
-            <span style={{ fontSize: 11.5, color: ink }}>{T('Trả ngay qua', 'Pay via')}</span>
-            <span style={{ flex: 1, height: 1, background: 'rgba(27,25,22,0.16)' }} />
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-            <span style={{ ...payChip, color: '#A50064' }}>MoMo</span>
-            <span style={{ ...payChip, color: '#005BAA' }}>VNPay</span>
-            <span style={{ ...payChip, color: '#0068FF' }}>ZaloPay</span>
-            <span style={{ ...payChip, color: '#E8792A' }}>HaloPay</span>
-            <span style={{ ...payChip, color: ink }}>Apple Pay</span>
-            <span style={{ ...payChip, color: ink }}>{T('Thẻ', 'Card')}</span>
-          </div>
-        </div>
-      )}
+      {s.reserveError && <div style={{ margin: '12px 22px 0', fontSize: 12, lineHeight: 1.5, color: '#9A3E2D' }}>{s.reserveError}</div>}
       <div style={{ height: 40 }} />
     </div>
   );
 }
 
 const inputStyle = { ...fieldGlass({ padding: '13px 14px', border: 'none' }), fontSize: 14, fontFamily: FACE, color: ink, outline: 'none' };
-const payChip = { ...fieldGlass({ padding: '10px 0', border: 'none' }), flex: 1, minWidth: 88, textAlign: 'center', fontSize: 12, fontWeight: 600 };

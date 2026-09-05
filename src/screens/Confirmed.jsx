@@ -1,15 +1,11 @@
 import { useGoc } from '../state/GocContext.jsx';
-import { paper, ink, rule, display, cardGlass, inkButton } from '../theme.js';
+import { paper, ink, rule, display, cardGlass } from '../theme.js';
 
 export default function Confirmed() {
-  const { state, T, trStatus, curEvent: ev, goHome, payHoldNow, addToCalendar, giveTicket } = useGoc();
+  const { state, T, curEvent: ev, goHome, addToCalendar, giveTicket } = useGoc();
   const s = state;
 
-  const priceNum = parseInt((ev.price.match(/[\d.]+/) || ['0'])[0].replace(/\./g, ''), 10) || 0;
-  const isFree = /Miễn phí/.test(ev.price);
-  const totalStr = isFree ? 'Miễn phí' : (priceNum * s.qty).toLocaleString('vi-VN') + '₫';
-
-  const holdActive = s.payMode === 'hold' && s.holdDeadline && s.holdDeadline > s.now;
+  const holdActive = s.booking?.status === 'pending' && s.holdDeadline && s.holdDeadline > s.now;
   const ms = Math.max(0, (s.holdDeadline || 0) - s.now);
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
@@ -17,15 +13,11 @@ export default function Confirmed() {
   const countdown = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
 
   const name = s.formName.trim() || T('Bạn', 'You');
-  const confirmEyebrow = s.payMode === 'now' ? T('Xong rồi!', 'All set!') : T('Đang giữ chỗ cho bạn', 'Holding your spot');
-  const confirmHeading = s.payMode === 'now'
-    ? (name + T(', ' + (s.qty > 1 ? s.qty + ' chỗ của bạn đã sẵn sàng rồi.' : 'chỗ của bạn đã sẵn sàng rồi.'), ', your ' + (s.qty > 1 ? s.qty + ' seats are' : 'seat is') + ' ready to go.'))
-    : (name + T(', ' + (s.qty > 1 ? s.qty + ' chỗ của bạn được giữ trong 24 giờ tới.' : 'chỗ của bạn được giữ trong 24 giờ tới.'), ', your ' + (s.qty > 1 ? s.qty + ' seats are' : 'seat is') + ' held for the next 24 hours.'));
-  const confirmNote = s.payMode === 'now'
-    ? T('Biên nhận và địa chỉ chính xác đã gửi tới ' + (s.formEmail.trim() || 'email của bạn') + '.', 'Receipt and the exact address were sent to ' + (s.formEmail.trim() || 'your email') + '.')
-    : T('Link thanh toán ' + totalStr + ' đã gửi tới ' + (s.formEmail.trim() || 'email của bạn') + '. Không trả trong 24 giờ thì chỗ tự nhả.', 'A payment link for ' + trStatus(totalStr) + ' was sent to ' + (s.formEmail.trim() || 'your email') + '. Unpaid holds release after 24 hours.');
+  const confirmEyebrow = holdActive ? T('Đang giữ chỗ cho bạn', 'Holding your spot') : T('Đã xác nhận', 'Confirmed');
+  const confirmHeading = name + T(', chỗ của bạn đang được giữ.', ', your spot is being held.');
+  const confirmNote = T('banbe không thu tiền. Hãy chuyển khoản trực tiếp cho người tổ chức theo hướng dẫn trong tin nhắn; nếu họ hủy, họ có trách nhiệm hoàn tiền cho bạn.', 'banbe does not collect money. Pay the organizer directly using the instructions in chat; if they cancel, they are responsible for your refund.');
 
-  const showQr = s.payMode === 'now';
+  const showQr = !!s.booking;
   const giveLabel = s.gaveTicket ? T('Đã gửi vé ▪︎ link qua Zalo', 'Ticket sent ▪︎ link via Zalo') : T('Tặng vé cho bạn bè', 'Give a ticket to a friend');
   const calendarLabel = s.calAdded ? T('Đã thêm vào lịch', 'Added to calendar') : T('Thêm vào lịch', 'Add to calendar');
 
@@ -44,7 +36,7 @@ export default function Confirmed() {
               </div>
               <span style={{ ...display(30, { fontVariantNumeric: 'tabular-nums' }) }}>{countdown}</span>
             </div>
-            <div onClick={payHoldNow} style={{ ...inkButton({ marginTop: 10, borderRadius: 18, padding: 14, fontSize: 14 }) }}>{T('Trả ngay', 'Pay now')} {trStatus(totalStr)}</div>
+            <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: ink }}>{T('Chuyển khoản trực tiếp cho người tổ chức trước khi hết giờ để xác nhận.', 'Pay the organizer directly before the timer ends to confirm.')}</div>
           </>
         )}
         <div style={{ marginTop: 28, borderTop: `1px solid ${rule}`, paddingTop: 14, display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center' }}>
@@ -53,7 +45,7 @@ export default function Confirmed() {
             <span style={{ fontSize: 12, color: ink }}>{ev.where}</span>
             {showQr && <span style={{ fontSize: 10.5, color: ink }}>{T('Đưa mã này ở cửa', 'Show this code at the door')}</span>}
           </div>
-          {showQr && <QrCode eventKey={ev.key} />}
+          {showQr && <QrCode eventKey={s.booking.code || ev.key} />}
         </div>
       </div>
       {showQr && (

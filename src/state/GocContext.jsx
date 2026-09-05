@@ -62,6 +62,8 @@ const initialState = {
   attendanceEventKey: null,
   checkins: {},
   calAdded: false,
+  booking: null,
+  reserveError: '',
 };
 
 export const AREAS = [
@@ -86,6 +88,18 @@ export function GocProvider({ children }) {
     }, 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active && data.session?.user) set({ user: data.session.user });
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active && session?.user) set({ user: session.user });
+      if (active && !session) set({ user: null });
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, [set]);
 
   const splashTimer = useRef(null);
   useEffect(() => {
@@ -199,42 +213,34 @@ export function GocProvider({ children }) {
   const formEmailType = useCallback((e) => set({ formEmail: e.target.value }), [set]);
   const submitReserve = useCallback(async (formOk) => {
     if (!formOk) return;
-    set({ loading: true });
-
-    const payModeMapped = s.payMode === 'hold' ? 'hold_24h' : 'now';
-    const formName = s.formName.trim() || 'Goer';
-    const formEmail = s.formEmail.trim() || 'goer@gocsociety.com';
+    set({ loading: true, reserveError: '' });
 
     try {
-      // Call atomic stored procedure reserve_event_tickets on Supabase
-      const { data, error } = await supabase.rpc('reserve_event_tickets', {
-        p_event_id: s.eventKey,
-        p_user_name: formName,
-        p_user_email: formEmail,
-        p_user_phone: '',
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) throw new Error('AUTH_REQUIRED');
+      const { data: event, error: eventError } = await supabase.from('events').select('id').eq('slug', s.eventKey).single();
+      if (eventError) throw eventError;
+      const { data: booking, error } = await supabase.rpc('claim_seats', {
+        p_event: event.id,
         p_qty: s.qty,
-        p_pay_mode: payModeMapped,
+        p_note: null,
       });
-
-      if (error) {
-        console.warn('Supabase RPC reserve_event_tickets fallback:', error.message);
-      } else if (data?.success) {
-        console.log('Atomic reservation successful:', data);
-      }
-    } catch (err) {
-      console.warn('Supabase reservation error, proceeding with local optimistic state:', err);
-    } finally {
+      if (error) throw error;
+      const holdDeadline = booking.expires_at ? new Date(booking.expires_at).getTime() : null;
       set(prev => ({
         loading: false,
+        booking,
         screen: 'confirmed',
-        holdDeadline: prev.payMode === 'hold' ? Date.now() + 24 * 60 * 60 * 1000 : null,
+        holdDeadline,
         now: Date.now(),
         tickets: { ...prev.tickets, [prev.eventKey]: prev.qty },
         attending: prev.attending.includes(prev.eventKey) ? prev.attending : [...prev.attending, prev.eventKey],
-        user: { name: formName, email: formEmail, via: 'email' },
       }));
+    } catch (err) {
+      console.warn('Supabase booking failed:', err);
+      set({ loading: false, reserveError: err.message || 'Unable to reserve this event.' });
     }
-  }, [set, s.payMode, s.formName, s.formEmail, s.eventKey, s.qty]);
+  }, [set, s.eventKey, s.qty]);
 
   const payHoldNow = useCallback(() => set({ holdDeadline: null, payMode: 'now' }), [set]);
   const addToCalendar = useCallback(() => set({ calAdded: true }), [set]);
